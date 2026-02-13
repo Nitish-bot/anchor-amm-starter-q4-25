@@ -21,11 +21,6 @@ pub struct Swap<'info> {
         bump = config.config_bump,
     )]
     pub config: Account<'info, Config>,
-    #[account(
-        seeds = [b"lp", config.key().as_ref()],
-        bump = config.lp_bump,
-    )]
-    pub mint_lp: Account<'info, Mint>,
 
     #[account(
         mut,
@@ -72,7 +67,7 @@ impl<'info> Swap<'info> {
         let mut cp = ConstantProduct::init(
             self.vault_x.amount,
             self.vault_y.amount,
-            self.mint_lp.supply,
+            0, // Not necessary for calculation here
             self.config.fee,
             Some(6),
         ).or(Err(AmmError::DefaultError))?;
@@ -148,10 +143,19 @@ impl<'info> Swap<'info> {
         let cpi_accounts = Transfer {
             from,
             to,
-            authority: self.user.to_account_info(),
+            authority: self.config.to_account_info(),
         };
 
-        let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+        let signer_seeds: &[&[&[u8]]] = &[&[
+            b"config",
+            &self.config.seed.to_le_bytes(),
+            &[self.config.config_bump],
+        ]];
+        let cpi_ctx = CpiContext::new_with_signer(
+            cpi_program,
+            cpi_accounts,
+            signer_seeds,
+        );
 
         transfer(cpi_ctx, amount)
     }

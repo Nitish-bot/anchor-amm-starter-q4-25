@@ -51,6 +51,7 @@ pub struct Withdraw<'info> {
     )]
     pub user_y: Account<'info, TokenAccount>,
     #[account(
+        mut,
         associated_token::mint = mint_lp,
         associated_token::authority = user,
     )]
